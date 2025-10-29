@@ -20,7 +20,7 @@ def send_code():
     server.starttls()
     server.login(“postcodelab@gmail.com”, "fxsk lgmd nvrv nxwi")
     message = f"Subject: HHJ Verification Code\n\nYour code is: {code}"
-    server.sendmail(“postcodelab@gmail.com”, email, message)
+    server.sendmail(postcodelab@gmail.com, email, message)
     server.quit()
 
     return jsonify({"success": True, "message": "Email sent successfully"})
