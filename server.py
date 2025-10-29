@@ -1,54 +1,40 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import smtplib, random, re
+import os
+import smtplib
+import random
 
 app = Flask(__name__)
 CORS(app)
 
-if __name__ == "__main__":
-port  = int(os.environ.get("PORT", 5000))
-app.run(host="0.0.0.0", port=port)
+verification_codes = {}
 
-# memorizziamo temporaneamente il codice in memoria
-stored_code = None
-
-@app.route("/send-code", methods=["POST"])
+@app.route('/send_code', methods=['POST'])
 def send_code():
-    global stored_code
     data = request.get_json()
-    email = data.get("email")
+    email = data.get('email')
+    code = str(random.randint(10000, 99999))
+    verification_codes[email] = code
 
-    if not email or not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-        return jsonify(success=False, message="Invalid email address.")
+    server = smtplib.SMTP('smtp.gmail.com', 587)
+    server.starttls()
+    server.login(“postcodelab@gmail.com”, "fxsk lgmd nvrv nxwi")
+    message = f"Subject: HHJ Verification Code\n\nYour code is: {code}"
+    server.sendmail(“postcodelab@gmail.com”, email, message)
+    server.quit()
 
-    stored_code = str(random.randint(10000, 99999))
+    return jsonify({"success": True, "message": "Email sent successfully"})
 
-    try:
-        # Configura qui il tuo SMTP (esempio con Gmail)
-        server = smtplib.SMTP("smtp.gmail.com", 587)
-        server.starttls()
-        server.login("postcodelab@gmail.com", "fxsk lgmd nvrv nxwi")
-        server.sendmail(
-            "your_email@gmail.com",
-            email,
-            f"Subject: Your HHJ verification code\n\nYour verification code is: {stored_code}"
-        )
-        server.quit()
-        return jsonify(success=True)
-    except Exception as e:
-        print(e)
-        return jsonify(success=False, message="Failed to send email.")
-
-@app.route("/verify-code", methods=["POST"])
+@app.route('/verify_code', methods=['POST'])
 def verify_code():
-    global stored_code
     data = request.get_json()
-    code = data.get("code")
+    email = data.get('email')
+    code = data.get('code')
 
-    if code == stored_code:
-        return jsonify(success=True)
+    if verification_codes.get(email) == code:
+        return jsonify({"verified": True})
     else:
-        return jsonify(success=False)
+        return jsonify({"verified": False})
 
-if __name__ == "__main__":
-    app.run(debug=True)
+# NON serve app.run() se usi Gunicorn
+# app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
